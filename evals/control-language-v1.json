@@ -1,0 +1,90 @@
+{
+  "fixture_kind": "diagnostic",
+  "diagnostic_fixture_version": "control-language-v1",
+  "cases": [
+    {
+      "id": "control-controls-satisfied",
+      "category": "explicit_control_language",
+      "goal": "Send the required notice through the applicable channel.",
+      "proposed_action": "Send the notice through the beta channel.",
+      "authority": { "status": "confirmed", "basis": "Operations delegation" },
+      "hard_constraints": ["Send the notice through the alpha channel", "Send the notice through the beta channel"],
+      "soft_preferences": [],
+      "known_facts": ["The beta-channel instruction controls for this decision", "Sending through the beta channel satisfies the controlling instruction"],
+      "unknown_facts": [],
+      "alternatives_considered": [],
+      "reasoning_summary": "The controlling instruction is explicitly known and satisfied.",
+      "expected_review_status": "no_material_concern_found"
+    },
+    {
+      "id": "control-governs-satisfied",
+      "category": "explicit_control_language",
+      "goal": "Publish the approved announcement through the applicable outlet.",
+      "proposed_action": "Publish the announcement through outlet B.",
+      "authority": { "status": "confirmed", "basis": "Communications delegation" },
+      "hard_constraints": ["Publish through outlet A", "Publish through outlet B"],
+      "soft_preferences": [],
+      "known_facts": ["The outlet-B instruction governs for this decision", "Publishing through outlet B satisfies the governing instruction"],
+      "unknown_facts": [],
+      "alternatives_considered": [],
+      "reasoning_summary": "The governing instruction is explicitly known and satisfied.",
+      "expected_review_status": "no_material_concern_found"
+    },
+    {
+      "id": "control-precedence-satisfied",
+      "category": "explicit_control_language",
+      "goal": "Use the applicable record-retention path.",
+      "proposed_action": "Store the record in the retained archive.",
+      "authority": { "status": "confirmed", "basis": "Records delegation" },
+      "hard_constraints": ["Store the record in the temporary workspace", "Store the record in the retained archive"],
+      "soft_preferences": [],
+      "known_facts": ["The retained-archive instruction takes precedence for this decision", "Storing in the retained archive satisfies the instruction that takes precedence"],
+      "unknown_facts": [],
+      "alternatives_considered": [],
+      "reasoning_summary": "The precedence relationship is explicitly known and satisfied.",
+      "expected_review_status": "no_material_concern_found"
+    },
+    {
+      "id": "control-established-violated",
+      "category": "explicit_control_language",
+      "goal": "Send the required notice through the applicable channel.",
+      "proposed_action": "Send the notice through the alpha channel.",
+      "authority": { "status": "confirmed", "basis": "Operations delegation" },
+      "hard_constraints": ["Send the notice through the alpha channel", "Send the notice through the beta channel"],
+      "soft_preferences": [],
+      "known_facts": ["The beta-channel instruction is controlling for this decision", "Sending through the alpha channel violates the controlling beta-channel instruction"],
+      "unknown_facts": [],
+      "alternatives_considered": [],
+      "reasoning_summary": "The controlling instruction is explicitly known and violated.",
+      "expected_review_status": "material_concern_found"
+    },
+    {
+      "id": "control-unresolved",
+      "category": "explicit_control_language",
+      "goal": "Send the required notice through the applicable channel.",
+      "proposed_action": "Send the notice through the beta channel.",
+      "authority": { "status": "confirmed", "basis": "Operations delegation" },
+      "hard_constraints": ["Send the notice through the alpha channel", "Send the notice through the beta channel"],
+      "soft_preferences": [],
+      "known_facts": ["Sending through the beta channel satisfies one instruction and violates the other"],
+      "unknown_facts": ["Which conflicting instruction controls is unknown"],
+      "alternatives_considered": [],
+      "reasoning_summary": "The unresolved control could change whether the action is acceptable.",
+      "expected_review_status": "insufficient_information"
+    },
+    {
+      "id": "control-unrelated-constraint-violated",
+      "category": "explicit_control_language",
+      "goal": "Send the required notice through the applicable channel and preserve the required record.",
+      "proposed_action": "Send the notice through the beta channel without recording the approval.",
+      "authority": { "status": "confirmed", "basis": "Operations delegation" },
+      "hard_constraints": ["Send the notice through the alpha channel", "Send the notice through the beta channel", "Record the approval in the audit log"],
+      "soft_preferences": [],
+      "known_facts": ["The beta-channel instruction controls for this decision", "Sending through the beta channel satisfies the controlling instruction", "The proposed action does not record the approval in the audit log"],
+      "unknown_facts": [],
+      "alternatives_considered": [],
+      "reasoning_summary": "The controlling instruction is satisfied, but an unrelated effective hard constraint is violated.",
+      "expected_review_status": "material_concern_found"
+    }
+  ]
+}

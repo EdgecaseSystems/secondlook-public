@@ -1,0 +1,126 @@
+{
+  "fixture_kind": "diagnostic",
+  "diagnostic_fixture_version": "soft-preference-v1",
+  "cases": [
+    {
+      "id": "diag-soft-01-prefer-arrival",
+      "category": "soft_preference_language",
+      "goal": "Book the cheapest acceptable flight.",
+      "proposed_action": "Purchase the $280 flight that arrives at 12:20 PM.",
+      "reasoning_summary": "It meets every requirement and is $80 cheaper than the morning flight.",
+      "important_constraints": ["Prefer arrival before noon", "Arrival time is not a hard requirement"],
+      "uncertainties": [],
+      "expected_recommendation": "proceed",
+      "expected_rationale_tags": ["soft_preference", "hard_constraints_satisfied"],
+      "failure_tags_on_mismatch": ["soft_preference_treated_as_hard"]
+    },
+    {
+      "id": "diag-hard-01-must-arrive",
+      "category": "hard_requirement_language",
+      "goal": "Book the cheapest acceptable flight.",
+      "proposed_action": "Purchase the $280 flight that arrives at 12:20 PM.",
+      "reasoning_summary": "It is $80 cheaper than the morning flight.",
+      "important_constraints": ["Must arrive before noon"],
+      "uncertainties": [],
+      "expected_recommendation": "reconsider",
+      "expected_rationale_tags": ["hard_constraint_violated"],
+      "failure_tags_on_mismatch": ["hard_constraint_precedence"]
+    },
+    {
+      "id": "diag-soft-02-if-possible-room",
+      "category": "soft_preference_language",
+      "goal": "Reserve an acceptable hotel room.",
+      "proposed_action": "Book the $150 street-facing room.",
+      "reasoning_summary": "It meets the location and price requirements and is $45 cheaper than the courtyard room.",
+      "important_constraints": ["Choose a quiet room if possible", "Quiet location is a preference, not a requirement"],
+      "uncertainties": [],
+      "expected_recommendation": "proceed",
+      "expected_rationale_tags": ["if_possible_is_soft", "hard_constraints_satisfied"],
+      "failure_tags_on_mismatch": ["soft_preference_treated_as_hard"]
+    },
+    {
+      "id": "diag-hard-02-quiet-required",
+      "category": "hard_requirement_language",
+      "goal": "Reserve an acceptable hotel room.",
+      "proposed_action": "Book the $150 street-facing room.",
+      "reasoning_summary": "It is $45 cheaper than the courtyard room.",
+      "important_constraints": ["A quiet courtyard-facing room is required"],
+      "uncertainties": [],
+      "expected_recommendation": "reconsider",
+      "expected_rationale_tags": ["required_room_attribute_missing"],
+      "failure_tags_on_mismatch": ["hard_constraint_precedence"]
+    },
+    {
+      "id": "diag-soft-03-ideally-lightweight",
+      "category": "soft_preference_language",
+      "goal": "Buy a laptop that meets the employee's requirements.",
+      "proposed_action": "Buy the 3.4-pound laptop for $900.",
+      "reasoning_summary": "It meets every required specification and costs $180 less than the 2.8-pound option.",
+      "important_constraints": ["Ideally keep weight under 3 pounds", "Weight is not a hard requirement"],
+      "uncertainties": [],
+      "expected_recommendation": "proceed",
+      "expected_rationale_tags": ["aspirational_weight_target", "hard_constraints_satisfied"],
+      "failure_tags_on_mismatch": ["soft_preference_treated_as_hard"]
+    },
+    {
+      "id": "diag-hard-03-weight-limit",
+      "category": "hard_requirement_language",
+      "goal": "Buy a laptop that meets the employee's requirements.",
+      "proposed_action": "Buy the 3.4-pound laptop for $900.",
+      "reasoning_summary": "It costs $180 less than the 2.8-pound option.",
+      "important_constraints": ["Laptop weight must be under 3 pounds"],
+      "uncertainties": [],
+      "expected_recommendation": "reconsider",
+      "expected_rationale_tags": ["hard_weight_limit_violated"],
+      "failure_tags_on_mismatch": ["hard_constraint_precedence"]
+    },
+    {
+      "id": "diag-soft-04-nice-to-have-delivery",
+      "category": "soft_preference_language",
+      "goal": "Order replacement office supplies.",
+      "proposed_action": "Order the supplies for Thursday delivery.",
+      "reasoning_summary": "Thursday delivery meets the actual Friday deadline and costs $35 less than Tuesday delivery.",
+      "important_constraints": ["Tuesday delivery would be nice to have", "Delivery is required by Friday"],
+      "uncertainties": [],
+      "expected_recommendation": "proceed",
+      "expected_rationale_tags": ["nice_to_have_is_soft", "deadline_satisfied"],
+      "failure_tags_on_mismatch": ["soft_preference_treated_as_hard"]
+    },
+    {
+      "id": "diag-hard-04-tuesday-required",
+      "category": "hard_requirement_language",
+      "goal": "Order replacement office supplies.",
+      "proposed_action": "Order the supplies for Thursday delivery.",
+      "reasoning_summary": "Thursday delivery costs $35 less than Tuesday delivery.",
+      "important_constraints": ["Delivery by Tuesday is required"],
+      "uncertainties": [],
+      "expected_recommendation": "reconsider",
+      "expected_rationale_tags": ["required_deadline_missed"],
+      "failure_tags_on_mismatch": ["hard_constraint_precedence"]
+    },
+    {
+      "id": "diag-soft-05-unless-materially-more-expensive",
+      "category": "soft_preference_language",
+      "goal": "Choose an acceptable event ticket.",
+      "proposed_action": "Buy the nonrefundable ticket for $130.",
+      "reasoning_summary": "The refundable ticket is $180, so honoring the preference would cost $50 more.",
+      "important_constraints": ["Prefer refundable unless materially more expensive", "Refundability is explicitly not a hard requirement"],
+      "uncertainties": [],
+      "expected_recommendation": "proceed",
+      "expected_rationale_tags": ["flexible_tradeoff", "material_price_difference"],
+      "failure_tags_on_mismatch": ["soft_preference_treated_as_hard"]
+    },
+    {
+      "id": "diag-hard-05-refundability-required",
+      "category": "hard_requirement_language",
+      "goal": "Choose an acceptable event ticket.",
+      "proposed_action": "Buy the nonrefundable ticket for $130.",
+      "reasoning_summary": "The refundable ticket costs $50 more.",
+      "important_constraints": ["Ticket must be refundable", "Do not buy a nonrefundable ticket"],
+      "uncertainties": [],
+      "expected_recommendation": "reconsider",
+      "expected_rationale_tags": ["refundability_requirement_violated"],
+      "failure_tags_on_mismatch": ["hard_constraint_precedence"]
+    }
+  ]
+}

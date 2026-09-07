@@ -1,0 +1,562 @@
+openapi: 3.1.0
+info:
+  title: SecondLook API
+  version: 0.2.0
+  description: >-
+    A second opinion before your AI agent acts: catch overlooked risks, conflicting constraints, and missing information before committing to an action. Independent pre-action review checks your supplied facts, authority, constraints, and reasoning against the proposed action and returns a structured status, reasons, risks, and missing information to help you decide whether to proceed, revise the plan, gather information, or involve a human. Buy when a costly, external, irreversible, or constraint-sensitive action warrants a separate check that could change your next step. Skip trivial or reversible actions when another review would not change the decision. This is a dedicated review contract, not a claim of superiority over your own reasoning or another model. SecondLook does not authorize, execute, or supply missing authority; results are not guarantees of correctness.
+externalDocs:
+  description: Buyer fit guide, illustrative examples, and privacy links
+  url: https://secondlook.example.com/
+paths:
+  /support:
+    get:
+      operationId: getPublicSupport
+      security: []
+      description: Read-only public contact information for payment, replay, or service issues. Performs no payment, inference, or tracking.
+      responses:
+        '200':
+          description: SecondLook support contact information.
+          content: { text/plain: { schema: { type: string } } }
+  /terms:
+    get:
+      operationId: getPublicServiceTerms
+      security: []
+      description: Read-only public service terms. Performs no payment, inference, or tracking.
+      responses:
+        '200':
+          description: Current public service terms.
+          content: { text/plain: { schema: { type: string } } }
+  /privacy:
+    get:
+      operationId: getPublicServicePrivacy
+      security: []
+      description: Read-only public service privacy notice. Performs no payment, inference, or tracking.
+      responses:
+        '200':
+          description: Current public service privacy notice.
+          content: { text/plain: { schema: { type: string } } }
+  /health:
+    get:
+      operationId: health
+      responses:
+        '200':
+          description: Service is healthy.
+  /v1/second-look:
+    post:
+      operationId: secondLook
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          description: >-
+            Optional for current authenticated callers. Within the authenticated caller namespace,
+            the key binds to the canonical validated request and, when supplied by an internal
+            caller, its explicit evaluation-model override for seven days. Server execution
+            context is recorded separately, so completed requests replay their original durable
+            response across policy, default-model, or provider deployments. Equivalent JSON object
+            key ordering and whitespace do not change the fingerprint; array ordering remains significant.
+          schema:
+            type: string
+            minLength: 8
+            maxLength: 128
+            pattern: '^[A-Za-z0-9][A-Za-z0-9._:-]*$'
+        - in: header
+          name: X-SecondLook-Model
+          required: false
+          description: Explicit evaluation-only Workers AI model override. The production default is used when omitted.
+          schema:
+            type: string
+            enum:
+              - '@cf/zai-org/glm-4.7-flash'
+              - '@cf/google/gemma-4-26b-a4b-it'
+              - '@cf/nvidia/nemotron-3-120b-a12b'
+      requestBody:
+        required: true
+        description: JSON body is limited to 65,536 bytes and 24,000 aggregate text characters.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecondLookRequest'
+      responses:
+        '200':
+          description: Independent judgment.
+          headers:
+            Idempotency-Replayed:
+              description: Present as true for a durable replay and false for the first completed idempotent request; absent when no key was supplied.
+              schema: { type: boolean }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecondLookResponse'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '409':
+          $ref: '#/components/responses/IdempotencyState'
+        '429':
+          $ref: '#/components/responses/CapacityLimited'
+        '502':
+          $ref: '#/components/responses/InvalidModelResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/paid/second-look:
+    post:
+      operationId: paidSecondLook
+      security: []
+      description: >-
+        Dormant-by-default x402 v2 paid variant. Production returns paid_service_disabled unless
+        an operator explicitly supplies a complete supported configuration. Base mainnet supports
+        either the mutually exclusive controlled canary or public-mainnet mode. Public mainnet
+        requires CDP, native Circle Base USDC, exactly 50000 atomic units, eligible U.S. service use
+        in the 50 states or District of Columbia, coarse Cloudflare edge corroboration, bounded outstanding obligations, and
+        explicit operator cost/emergency fuses. A request without PAYMENT-SIGNATURE receives a
+        stateless PaymentRequired response after bounded read-only availability checks;
+        application input and UUIDv4 idempotency become mandatory on the payment-bearing
+        retry. Before the single settlement attempt, the service durably reserves combined
+        paid/internal capacity. A settled payment is required before inference. The endpoint
+        never retries facilitator settlement or model inference automatically.
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: false
+          description: >-
+            Mandatory UUIDv4 capability identifier when PAYMENT-SIGNATURE is present;
+            not required merely to obtain the initial PaymentRequired response. It
+            supplies an unguessable pre-verification namespace and is durably bound to
+            the canonical validated SecondLook request for seven days.
+          schema:
+            type: string
+            format: uuid
+            pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89aAbB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        - in: header
+          name: PAYMENT-SIGNATURE
+          required: false
+          description: Base64-encoded x402 v2 PaymentPayload returned by a compatible buyer after the initial 402 response.
+          schema: { type: string, maxLength: 16384 }
+        - in: header
+          name: X-SecondLook-Service-Use-Country
+          required: false
+          description: Required as US only for a new payment-bearing public-mainnet request; not required for the initial stateless 402 or existing paid replay/recovery.
+          schema: { type: string, enum: [US] }
+        - in: header
+          name: X-SecondLook-Service-Use-Region
+          required: false
+          description: Required as a two-letter eligible U.S. state or DC code for a new payment-bearing public-mainnet request. U.S. territories are unavailable.
+          schema: { type: string, pattern: '^[A-Z]{2}$' }
+      requestBody:
+        required: false
+        description: >-
+          Mandatory on a payment-bearing retry and then subject to the same strict
+          65,536-byte SecondLook request contract as the authenticated endpoint. A
+          body is not required merely to obtain the initial PaymentRequired response.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecondLookRequest'
+      responses:
+        '200':
+          description: Paid independent judgment or exact durable replay.
+          headers:
+            PAYMENT-RESPONSE:
+              description: Base64-encoded x402 v2 SettlementResponse reconstructed from durable accepted-payment metadata.
+              schema: { type: string }
+            Idempotency-Replayed:
+              description: True on exact durable replay and false on the first completed response.
+              schema: { type: boolean }
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecondLookResponse'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '402':
+          description: Payment is required or a presented payment was definitively invalid. Do not retry an invalid payment unchanged.
+          headers:
+            PAYMENT-REQUIRED:
+              description: Base64-encoded x402 v2 PaymentRequired object on the initial unpaid response, including the optional Bazaar discovery extension when paid mode is configured.
+              schema: { type: string }
+            PAYMENT-RESPONSE:
+              description: Base64-encoded failed SettlementResponse when a facilitator attempt produced a definitive failure.
+              schema: { type: string }
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '409':
+          description: Payment proof conflict, settlement in progress, accepted request still processing, or non-retryable ambiguous payment/inference state.
+          headers:
+            Retry-After: { schema: { type: integer, minimum: 1 } }
+            PAYMENT-RESPONSE:
+              description: Present when bounded settlement metadata is available.
+              schema: { type: string }
+          content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/CapacityLimited'
+        '502':
+          $ref: '#/components/responses/InvalidModelResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '504':
+          $ref: '#/components/responses/ProviderTimeout'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /v1/outcomes:
+    post:
+      operationId: reportOutcome
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        description: JSON body is limited to 65,536 bytes.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OutcomeRequest'
+      responses:
+        '202':
+          description: Outcome accepted.
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '413':
+          $ref: '#/components/responses/RequestTooLarge'
+        '415':
+          $ref: '#/components/responses/UnsupportedMediaType'
+        '429':
+          $ref: '#/components/responses/CapacityLimited'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  responses:
+    InvalidRequest:
+      description: The caller supplied invalid JSON or a request that does not match the strict schema. Do not retry unchanged.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    Unauthorized:
+      description: The access credential is missing or invalid. Do not retry with the same credential.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    RequestTooLarge:
+      description: The request exceeds the service body limit. Do not retry unchanged.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    UnsupportedMediaType:
+      description: Content-Type must be application/json. Do not retry unchanged.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    IdempotencyState:
+      description: >-
+        The key conflicts with another logical request, the original request is in progress,
+        or prior inference may have occurred without a replayable result. Only the in-progress
+        response is retryable, and it carries Retry-After.
+      headers:
+        Retry-After: { schema: { type: integer, minimum: 1 } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    CapacityLimited:
+      description: A caller rate, burst, concurrency, or attempt limit was reached. Retry only when retryable is true and after Retry-After.
+      headers:
+        Retry-After: { schema: { type: integer, minimum: 1 } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    InvalidModelResponse:
+      description: The provider returned output outside the strict judgment schema. No judgment was created and no automatic inference retry occurred.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ServiceUnavailable:
+      description: The service is disabled, misconfigured, circuit-open, at its daily inference ceiling, or encountered a provider failure.
+      headers:
+        Retry-After: { schema: { type: integer, minimum: 1 } }
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    ProviderTimeout:
+      description: The single provider attempt exceeded 30 seconds. The server did not start another inference, but the original attempt may still hold its lease; do not retry automatically.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+    InternalError:
+      description: The service failed internally before returning a judgment. Do not retry automatically.
+      content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } }
+  schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error, code, category, retryable, request_id]
+      properties:
+        error: { type: string }
+        code:
+          type: string
+          enum:
+            - invalid_json_body
+            - unsupported_media_type
+            - request_too_large
+            - invalid_idempotency_key
+            - missing_idempotency_key
+            - malformed_payment_proof
+            - invalid_payment_binding
+            - missing_service_use_jurisdiction
+            - invalid_service_use_jurisdiction
+            - service_region_unavailable
+            - invalid_secondlook_request
+            - invalid_constraint_context
+            - invalid_outcome_request
+            - decision_not_found
+            - pilot_model_override_not_allowed
+            - unsupported_model_override
+            - invalid_access_key
+            - missing_access_key
+            - pilot_usage_limit_reached
+            - rate_limit_reached
+            - daily_request_limit_reached
+            - inference_capacity_reached
+            - daily_inference_limit_reached
+            - financial_capacity_reached
+            - service_disabled
+            - idempotency_key_conflict
+            - idempotency_in_progress
+            - idempotency_state_ambiguous
+            - payment_required
+            - payment_configuration_invalid
+            - paid_service_disabled
+            - payment_not_found
+            - payment_requirement_conflict
+            - payment_proof_conflict
+            - payment_in_progress
+            - payment_request_processing
+            - payment_verification_unavailable
+            - payment_failed
+            - payment_ambiguous
+            - payment_state_conflict
+            - provider_unavailable
+            - provider_timeout
+            - invalid_model_payload
+            - missing_model_output
+            - model_refusal
+            - invalid_model_json
+            - invalid_gate_schema
+            - invalid_gate_object
+            - invalid_clear_reason_consistency
+            - invalid_material_unknown_consistency
+            - invalid_review_status
+            - invalid_reason
+            - invalid_key_risks
+            - invalid_missing_information
+            - internal_error
+            - not_found
+        detail: { type: string, deprecated: true }
+        category: { type: string, enum: [caller, access, capacity, provider, payment, service] }
+        message: { type: string }
+        retryable: { type: boolean }
+        request_id: { type: string, format: uuid }
+    SecondLookRequest:
+      type: object
+      additionalProperties: false
+      required: [goal, proposed_action]
+      properties:
+        goal:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        proposed_action:
+          type: string
+          minLength: 1
+          maxLength: 4000
+        authority:
+          $ref: '#/components/schemas/AuthorityContext'
+        hard_constraints:
+          $ref: '#/components/schemas/TextList'
+        constraint_context:
+          $ref: '#/components/schemas/ConstraintContextV1'
+        soft_preferences:
+          $ref: '#/components/schemas/TextList'
+        known_facts:
+          $ref: '#/components/schemas/TextList'
+        unknown_facts:
+          $ref: '#/components/schemas/TextList'
+        alternatives_considered:
+          $ref: '#/components/schemas/TextList'
+        reasoning_summary:
+          type: string
+          maxLength: 4000
+        important_constraints:
+          deprecated: true
+          description: Legacy compatibility field. Use hard_constraints and soft_preferences.
+          $ref: '#/components/schemas/TextList'
+        uncertainties:
+          deprecated: true
+          description: Legacy compatibility field. Use unknown_facts; do not place known facts here.
+          $ref: '#/components/schemas/TextList'
+        estimated_cost_of_action:
+          type: object
+          additionalProperties: false
+          required: [amount, currency]
+          properties:
+            amount:
+              type: number
+              minimum: 0
+              maximum: 1000000000000000
+            currency:
+              type: string
+              pattern: '^[A-Z]{3}$'
+    SecondLookResponse:
+      type: object
+      additionalProperties: false
+      required: [decision_id, created_at, policy_version, model, review_status, recommendation, reason, key_risks, missing_information]
+      properties:
+        decision_id:
+          type: string
+          format: uuid
+        created_at:
+          type: string
+          format: date-time
+        policy_version:
+          type: string
+        model:
+          type: string
+        review_status:
+          type: string
+          description: >-
+            Observational result only. no_material_concern_found is not
+            authorization, permission, a safety guarantee, or a correctness guarantee.
+          enum: [no_material_concern_found, material_concern_found, insufficient_information, human_review_required]
+        recommendation:
+          type: string
+          deprecated: true
+          description: Temporary legacy alias mechanically derived from review_status.
+          enum: [proceed, reconsider, need_more_information, escalate_to_human]
+        reason:
+          type: string
+        key_risks:
+          type: array
+          items:
+            type: string
+        missing_information:
+          type: array
+          items:
+            type: string
+    AuthorityContext:
+      type: object
+      additionalProperties: false
+      required: [status]
+      description: >-
+        Caller-supplied authority only. SecondLook never supplies missing authority.
+        If required authority is absent or unclear, human_review_required is preferred.
+      properties:
+        status:
+          type: string
+          enum: [confirmed, unclear, unknown]
+        basis:
+          type: string
+          maxLength: 4000
+        limits:
+          $ref: '#/components/schemas/TextList'
+    ConstraintContextV1:
+      type: object
+      additionalProperties: false
+      required: [schema_version, constraints]
+      description: >-
+        Complete caller-supplied constraint context. IDs are opaque technical identifiers and
+        relationships are authoritative; SecondLook does not infer them from text or ordering.
+        Nonempty hard_constraints and important_constraints are mutually exclusive with this field.
+      properties:
+        schema_version:
+          type: string
+          const: constraint-context-v1
+        constraints:
+          type: array
+          minItems: 1
+          maxItems: 25
+          items:
+            $ref: '#/components/schemas/StructuredConstraint'
+        conflict_groups:
+          type: array
+          maxItems: 12
+          items:
+            $ref: '#/components/schemas/ConstraintConflictGroup'
+    StructuredConstraint:
+      type: object
+      additionalProperties: false
+      required: [id, text, applicability, action_relation]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z][a-z0-9_-]{0,63}$'
+          description: Opaque caller-assigned technical ID; do not encode sensitive text in IDs.
+        text:
+          type: string
+          minLength: 1
+          maxLength: 1000
+        applicability:
+          type: string
+          enum: [applicable, inapplicable, unresolved]
+        action_relation:
+          type: string
+          enum: [satisfies, violates, unresolved, not_applicable]
+    ConstraintConflictGroup:
+      type: object
+      additionalProperties: false
+      required: [id, constraint_ids, control]
+      properties:
+        id:
+          type: string
+          pattern: '^[a-z][a-z0-9_-]{0,63}$'
+        constraint_ids:
+          type: array
+          minItems: 2
+          maxItems: 10
+          uniqueItems: true
+          items: { type: string }
+        independently_binding_constraint_ids:
+          type: array
+          uniqueItems: true
+          items: { type: string }
+        control:
+          oneOf:
+            - type: object
+              additionalProperties: false
+              required: [status, controlling_constraint_id]
+              properties:
+                status: { const: established }
+                controlling_constraint_id: { type: string }
+            - type: object
+              additionalProperties: false
+              required: [status]
+              properties:
+                status: { const: unresolved }
+    TextList:
+      type: array
+      maxItems: 25
+      items:
+        type: string
+        minLength: 1
+        maxLength: 4000
+    OutcomeRequest:
+      type: object
+      additionalProperties: false
+      required: [decision_id, outcome]
+      properties:
+        decision_id:
+          type: string
+          format: uuid
+        outcome:
+          type: string
+          enum: [successful, unsuccessful, human_approved, human_corrected, reversed, no_observable_issue, unknown]
+        details:
+          type: string
+          maxLength: 4000
+        measurable_value:
+          type: number
+          minimum: -1000000000000000
+          maximum: 1000000000000000
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
