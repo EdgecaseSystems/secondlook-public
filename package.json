@@ -16,7 +16,7 @@
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260823.1",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4",
+    "vitest": "^5.0.0",
     "wrangler": "^4.31.0"
   },
   "license": "UNLICENSED"
