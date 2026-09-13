@@ -1,0 +1,48 @@
+name: Temporary canonicalize public CDP core
+
+on:
+  push:
+    branches:
+      - fix/canonicalize-cdp-core-2026-09-13
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply exact core compatibility corrections
+        shell: bash
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          const path = 'src/x402-core.ts';
+          let source = fs.readFileSync(path, 'utf8');
+          const oldDescription = 'description: `${PUBLIC_AGENT_DESCRIPTION} See the public root and /openapi.json for buyer-fit guidance, labeled illustrative examples, and /privacy before submitting business context. U.S.-only public service in the 50 states and District of Columbia; U.S. territories unavailable.`,';
+          const newDescription = 'description: "SecondLook provides an independent pre-action review of a proposed AI or agent action. It checks supplied facts, authority, constraints, reasoning, risks, and missing information before execution. Use it when an action is costly, external, irreversible, or constraint-sensitive. SecondLook does not authorize, execute, or supply missing authority, and results are not guarantees of correctness.",';
+          if (!source.includes(oldDescription)) throw new Error('Expected legacy payment-resource description was not found.');
+          source = source.replace(oldDescription, newDescription);
+          const oldClaims = ['    sub: credentials.apiKeyId,','    iss: "cdp",','    iat: now,','    nbf: now,','    exp: now + 120,','    uris: [`POST ${target.host}${target.pathname}`],'].join('\n');
+          const newClaims = ['    sub: credentials.apiKeyId,','    iss: "cdp",','    aud: ["cdp_service"],','    nbf: now,','    exp: now + 120,','    uri: `POST ${target.host}${target.pathname}`,'].join('\n');
+          if (!source.includes(oldClaims)) throw new Error('Expected legacy CDP JWT claims were not found.');
+          source = source.replace(oldClaims, newClaims);
+          fs.writeFileSync(path, source);
+          NODE
+      - name: Commit correction
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/x402-core.ts
+          git commit -m "Canonicalize public CDP x402 core behavior"
+          git push origin HEAD:${{ github.ref_name }}
