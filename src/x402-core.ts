@@ -644,7 +644,7 @@ export function makeX402PaymentRequired(resourceUrl: string, accepted: X402Payme
     error,
     resource: {
       url: resourceUrl,
-      description: `${PUBLIC_AGENT_DESCRIPTION} See the public root and /openapi.json for buyer-fit guidance, labeled illustrative examples, and /privacy before submitting business context. U.S.-only public service in the 50 states and District of Columbia; U.S. territories unavailable.`,
+      description: "SecondLook provides an independent pre-action review of a proposed AI or agent action. It checks supplied facts, authority, constraints, reasoning, risks, and missing information before execution. Use it when an action is costly, external, irreversible, or constraint-sensitive. SecondLook does not authorize, execute, or supply missing authority, and results are not guarantees of correctness.",
       mimeType: "application/json",
       serviceName: "SecondLook",
       tags: ["ai", "agent", "review", "pre-action", "decision-support"],
@@ -707,10 +707,10 @@ async function cdpAuthorizationHeader(credentials: CdpFacilitatorCredentials, en
   const claims = base64Url(new TextEncoder().encode(JSON.stringify({
     sub: credentials.apiKeyId,
     iss: "cdp",
-    iat: now,
+    aud: ["cdp_service"],
     nbf: now,
     exp: now + 120,
-    uris: [`POST ${target.host}${target.pathname}`],
+    uri: `POST ${target.host}${target.pathname}`,
   })));
   const privateKey = await crypto.subtle.importKey("jwk", {
     kty: "OKP", crv: "Ed25519", d: base64Url(keyBytes.slice(0, 32)), x: base64Url(keyBytes.slice(32)),
