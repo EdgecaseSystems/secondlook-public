@@ -386,7 +386,7 @@ describe("x402 v2 protocol boundary", () => {
     expect(result.verifiedAt).toBe(result.settledAt);
   });
 
-  it("uses a short-lived CDP JWT only for post-proof facilitator calls", async () => {
+  it("uses Coinbase's documented short-lived CDP Bearer JWT for post-proof facilitator calls", async () => {
     const fetcher = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({
         success: true, payer: payload().payload.authorization.from, transaction: `0x${"ef".repeat(32)}`,
         network: accepted.network, amount: accepted.amount,
@@ -407,15 +407,17 @@ describe("x402 v2 protocol boundary", () => {
       const jwtClaims = JSON.parse(new TextDecoder().decode(base64UrlDecode(encodedClaims)));
       expect(jwtHeader).toMatchObject({ alg: "EdDSA", typ: "JWT", kid: "test-cdp-key" });
       expect(jwtHeader.nonce).toMatch(/^[0-9a-f]{32}$/);
-      expect(jwtClaims).toMatchObject({
+      expect(jwtClaims).toEqual({
         sub: "test-cdp-key",
         iss: "cdp",
-        uris: [`POST api.cdp.coinbase.com/platform/v2/x402/settle`],
+        aud: ["cdp_service"],
+        nbf: expect.any(Number),
+        exp: expect.any(Number),
+        uri: `POST api.cdp.coinbase.com/platform/v2/x402/settle`,
       });
-      expect(jwtClaims.iat).toBe(jwtClaims.nbf);
-      expect(jwtClaims.exp).toBe(jwtClaims.iat + 120);
-      expect(jwtClaims).not.toHaveProperty("aud");
-      expect(jwtClaims).not.toHaveProperty("uri");
+      expect(jwtClaims.exp).toBe(jwtClaims.nbf + 120);
+      expect(jwtClaims).not.toHaveProperty("iat");
+      expect(jwtClaims).not.toHaveProperty("uris");
     }
     expect(JSON.stringify(log.mock.calls)).not.toContain(secret);
     expect(JSON.stringify(log.mock.calls)).not.toContain(payload().payload.signature);
