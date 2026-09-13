@@ -6,6 +6,8 @@
 
 **Portfolio evidence:** 300 automated tests across 18 files at publication · TypeScript · Cloudflare Workers/D1/Workers AI · x402 payments · passing CI
 
+**Post-publication validation:** a controlled 2026-09-13 Base-mainnet audit completed one real 0.05-USDC settlement end to end and returned the appropriate `human_review_required` judgment for a high-consequence bulk-deletion case. The public snapshot now includes the CDP/x402 compatibility corrections and focused regression coverage discovered during that audit. [Sanitized validation record](docs/POST_PUBLICATION_VALIDATION.md).
+
 An AI agent can produce a convincing plan while overlooking missing authority, contradictory constraints, or an important unknown. SecondLook gives the caller a separate, structured review before it commits to an action.
 
 **The production SecondLook service is live and designed for largely autonomous machine-to-machine operation.** Once deployed and configured, ordinary review and payment requests are processed end-to-end without a human operator. Human intervention is reserved for exceptional reconciliation/remediation and operational maintenance.
